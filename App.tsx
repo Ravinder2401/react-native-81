@@ -1,45 +1,72 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import * as React from 'react';
+import { View, Text, Button, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+// Define type for navigation stack params (optional but recommended for TS)
+type RootStackParamList = {
+  Home: undefined;
+  Details: { message: string };
+};
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
+// Home Screen
+function HomeScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
+      <Text style={styles.title}>Home Screen</Text>
+      <Button
+        title="Go to Details"
+        onPress={() =>
+          navigation.navigate('Details', { message: 'Hello from Home!' })
+        }
       />
     </View>
   );
 }
 
+// Details Screen
+function DetailsScreen({ route, navigation }: any) {
+  const { message } = route.params;
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Details Screen</Text>
+      <Text style={styles.text}>{message}</Text>
+
+      <Button title="Go Back" onPress={() => navigation.goBack()} />
+    </View>
+  );
+}
+
+// App Component
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Details" component={DetailsScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 12,
+    fontWeight: 'bold',
+  },
+  text: {
+    fontSize: 18,
+    marginBottom: 20,
   },
 });
-
-export default App;
