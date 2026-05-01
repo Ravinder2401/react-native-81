@@ -105,8 +105,12 @@ To learn more about React Native, take a look at the following resources:
 
 ## Navigation Setup
 
--1. Install React Navigation
+-1. Install Native Stack Navigation
 - npm install @react-navigation/native
 - npm install react-native-screens react-native-safe-area-context
 - npm install @react-navigation/native-stack
 - npm install @react-navigation/elements
+
+-2. Install Drawer Navigation
+- npm install @react-navigation/drawer
+- npm install react-native-gesture-handler react-native-reanimated react-native-worklets
