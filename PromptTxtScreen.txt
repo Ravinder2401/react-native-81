@@ -1,0 +1,309 @@
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  StatusBar,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+} from 'react-native';
+import axios from 'axios';
+
+const GEMINI_API_KEY = 'AIzaSyBcBy5SS4zwHJiLz6Vsw81btVrS61hh06I';
+const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+interface Message {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
+const PromptImageScreener = () => {
+  const [inputText, setInputText] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const askGemini = async () => {
+    if (!inputText.trim()) return;
+    Keyboard.dismiss();
+    
+    const userMessage: Message = { role: 'user', parts: [{ text: inputText.trim() }] };
+    const currentChat = [...messages, userMessage];
+    
+    setMessages(currentChat);
+    setInputText('');
+    setLoading(true);
+
+    try {
+      const result = await axios.post(API_ENDPOINT, {
+        contents: currentChat, // Send the entire history for context
+      });
+
+      const aiText = result.data?.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't process that.";
+      const aiMessage: Message = { role: 'model', parts: [{ text: aiText }] };
+      
+      setMessages([...currentChat, aiMessage]);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (err: any) {
+      Alert.alert('AI Error', 'Something went wrong while talking to Gemini.');
+      console.log('err---', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    setInputText('');
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}
+        keyboardVerticalOffset={100}
+      >
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <Text style={styles.emoji}>✨</Text>
+            <View>
+              <Text style={styles.title}>Creative Mind</Text>
+              <Text style={styles.subtitle}>Continuous conversation</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.clearBtnApp} onPress={clearChat}>
+            <Text style={styles.clearTextApp}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {messages.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>👋</Text>
+              <Text style={styles.emptyTitle}>Start a conversation!</Text>
+              <Text style={styles.emptySub}>Ask me anything, follow up with questions, and maintain context.</Text>
+            </View>
+          ) : (
+            messages.map((msg, index) => (
+              <View 
+                key={index} 
+                style={[
+                  styles.messageBubble, 
+                  msg.role === 'user' ? styles.userBubble : styles.aiBubble
+                ]}
+              >
+                {msg.role === 'model' && <Text style={styles.roleLabel}>Gemini</Text>}
+                <Text style={[
+                  styles.messageText,
+                  msg.role === 'user' ? styles.userText : styles.aiText
+                ]}>
+                  {msg.parts[0].text}
+                </Text>
+              </View>
+            ))
+          )}
+          {loading && (
+            <View style={[styles.messageBubble, styles.aiBubble, styles.loadingBubble]}>
+              <ActivityIndicator color="#6366f1" size="small" />
+              <Text style={styles.loadingText}>Gemini is thinking...</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.inputCard}>
+          <TextInput
+            style={styles.promptInput}
+            placeholder="Ask a follow-up question..."
+            placeholderTextColor="#94a3b8"
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, (!inputText.trim() || loading) && styles.disabledBtn]}
+            onPress={askGemini}
+            disabled={loading || !inputText.trim()}
+          >
+            <Text style={styles.sendText}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  flex: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  emoji: {
+    fontSize: 28,
+    marginRight: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  clearBtnApp: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  clearTextApp: {
+    color: '#64748b',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  scrollContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 20,
+    flexGrow: 1,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 60,
+  },
+  emptyIcon: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 10,
+  },
+  emptySub: {
+    fontSize: 15,
+    color: '#64748b',
+    textAlign: 'center',
+    paddingHorizontal: 40,
+    lineHeight: 22,
+  },
+  messageBubble: {
+    maxWidth: '85%',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#10b981',
+    borderBottomRightRadius: 4,
+  },
+  aiBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderBottomLeftRadius: 4,
+  },
+  roleLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#8b5cf6',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  userText: {
+    color: '#ffffff',
+  },
+  aiText: {
+    color: '#334155',
+  },
+  loadingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  loadingText: {
+    marginLeft: 10,
+    color: '#64748b',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  inputCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  promptInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1e293b',
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    minHeight: 48,
+    maxHeight: 120,
+    marginRight: 10,
+  },
+  sendBtn: {
+    backgroundColor: '#6366f1',
+    height: 48,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledBtn: {
+    backgroundColor: '#cbd5e1',
+  },
+  sendText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+});
+
+export default PromptImageScreener;
+

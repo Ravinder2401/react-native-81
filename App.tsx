@@ -1,80 +1,52 @@
-import * as React from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import React from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ThemeProvider, useTheme } from './ThemeContext';
 
-// Define types (optional but recommended)
-type DrawerParamList = {
+import HomeScreen from './screens/HomeScreen';
+import PromptImageScreener from './screens/PromptImageScreener';
+import ImageTxtScreener from './screens/ImageTxtScreener';
+import ImageTxtScreenerNew from './screens/ImageTxtScreenerNew';
+
+export type RootStackParamList = {
   Home: undefined;
-  Details: { message: string };
+  PromptImageScreener: undefined;
+  ImageTxtScreener: undefined;
+  ImageTxtScreenerNew: undefined;
 };
 
-const Drawer = createDrawerNavigator<DrawerParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Home Screen
-function HomeScreen({ navigation }: any) {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Home Screen</Text>
-
-      <Button
-        title="Open Drawer"
-        onPress={() => navigation.openDrawer()}
-      />
-
-      <View style={{ height: 10 }} />
-
-      <Button
-        title="Go to Details"
-        onPress={() =>
-          navigation.navigate('Details', { message: 'Hello from Home!' })
-        }
-      />
-    </View>
-  );
-}
-
-// Details Screen
-function DetailsScreen({ route, navigation }: any) {
-  const { message } = route.params || {};
+const NavigationWrapper = () => {
+  const { isDark } = useTheme();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Details Screen</Text>
-      <Text style={styles.text}>{message}</Text>
-
-      <Button title="Open Drawer" onPress={() => navigation.openDrawer()} />
-    </View>
-  );
-}
-
-// App Component
-export default function App() {
-  return (
-    <NavigationContainer>
-      <Drawer.Navigator initialRouteName="Home">
-        <Drawer.Screen name="Home" component={HomeScreen} />
-        <Drawer.Screen name="Details" component={DetailsScreen} />
-      </Drawer.Navigator>
+    <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
+      <Stack.Navigator 
+        initialRouteName="Home"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: isDark ? '#0f172a' : '#ffffff',
+          },
+          headerTintColor: isDark ? '#f8fafc' : '#0f172a',
+          headerShadowVisible: false,
+        }}
+      >
+        <Stack.Screen options={{headerShown:false}} name="Home" component={HomeScreen} />
+        <Stack.Screen options={{ title: 'Creative Mind' }} name="PromptImageScreener" component={PromptImageScreener} />
+        <Stack.Screen options={{ title: 'Text Intel' }} name="ImageTxtScreener" component={ImageTxtScreener} />
+        <Stack.Screen options={{ title: 'Visual Intelligence' }} name="ImageTxtScreenerNew" component={ImageTxtScreenerNew} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
 
-// Styles
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 12,
-    fontWeight: 'bold',
-  },
-  text: {
-    fontSize: 18,
-    marginBottom: 20,
-  },
-});
+const App = () => {
+  return (
+    <ThemeProvider>
+      <NavigationWrapper />
+    </ThemeProvider>
+  );
+};
+
+export default App;
